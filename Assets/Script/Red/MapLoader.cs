@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class MapLoader : NetComponent {
 
@@ -20,7 +20,7 @@ public class MapLoader : NetComponent {
 
         Network.SetLevelPrefix(++_levelPrefix);
 
-        Application.LoadLevel(level);
+        SceneManager.LoadScene(level);
 
         Network.isMessageQueueRunning = true;
 

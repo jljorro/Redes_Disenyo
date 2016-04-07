@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class Server : NetComponent 
 {
@@ -34,7 +34,7 @@ public class Server : NetComponent
             case State.disconnected:
                 {
                     GameObject.Destroy(gameObject);
-                    Application.LoadLevel("Menu");
+                    SceneManager.LoadScene("Menu");
                 } break;
             case State.waiting:
                 {
