@@ -9,7 +9,7 @@ public class NetComponent : MonoBehaviour
     public bool _server = true;
     public bool _client = true;
 
-    protected void Start()
+    private void Start()
     {
         if (Network.peerType == NetworkPeerType.Disconnected &&
                 !_monojugador)

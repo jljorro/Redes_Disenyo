@@ -1,32 +1,24 @@
 using UnityEngine;
 using System.Collections;
 
+enum movementAcel { gas, brake, drag }
+enum TurnAcel { left, right, drag }
+
+/// <summary>
+/// 
+/// </summary>
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerStatus))]
-public class PlayerController : NetComponent
-{
-    private PlayerStatus _status;
+public class PlayerController : NetComponent {
+    public float _acel = 4;
+    public float _drag = 1;
+    public float _brakeAcel = 12;
+    public float _maxVelocity = 10;
+    
     private CharacterController _controller;
-
-    void FixedUpdate()
-    {
-        MovePlayer(_status.Velocity);
-    }
-
-    protected override void OnStart()
-    {  
-        _status = GetComponent<PlayerStatus>();
-        _controller = GetComponent<CharacterController>();
-    }
-
-    void MovePlayer(Vector3 vel)
-    {
-        Vector3 motion = vel * Time.fixedDeltaTime;
-
-        _controller.Move(motion);
-
-        if(vel != Vector3.zero)
-            transform.rotation = Quaternion.LookRotation(vel);
-    }
-	
+    private PlayerStatus _status;
+    
+    float _vInput = 0;
+    float _hInput = 0;
+    
 }

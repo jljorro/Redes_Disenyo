@@ -34,10 +34,6 @@ public class GUIInfo : NetComponent
         _lider = lider;
     }
 
-
-
-
-
     public static void Label(float left, float top, float width, float height, string text)
     {
         GUI.Label(new Rect(left * Screen.width, top * Screen.height, width * Screen.width, height * Screen.height), text);

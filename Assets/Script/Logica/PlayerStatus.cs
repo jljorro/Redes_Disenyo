@@ -3,7 +3,7 @@ using System.Collections;
 
 public class PlayerStatus : NetComponent
 {
-    public Vector3 Velocity;
+    public Vector3 Velocity { get; set; }
 
     void Awake()
     {
@@ -12,47 +12,13 @@ public class PlayerStatus : NetComponent
 
     protected override void OnStart()
     {
+        GameObject.FindWithTag("MainCamera").GetComponent<CameraController>().Target = gameObject;
+        GameObject finishLine = GameObject.FindWithTag("FinishLine");
+        SendMessage(finishLine, "AddCar", gameObject.name);
     }
 
     void ChangeName(string newName)
-    {
-        name = newName;
-    }
-
-    void IsLocalPlayer(string newName)
-    {
-        if (newName == Network.player.ToString())
-        {
-            // Tomo el control
-            GameObject.FindWithTag("MainCamera").
-                GetComponent<CameraController>().Target = gameObject;
-            GetComponent<PlayerInput>().enabled = true;
-            GetComponent<CalculateVelocity>().enabled = true;
-            GetComponent<GUIInfo>().enabled = true;
-        }
-    }
-
-    void OnSerializeNetworkView(BitStream stream, NetworkMessageInfo info)
-    {
-        if (stream.isWriting)
-        {
-            stream.Serialize(ref Velocity);
-            Vector3 pos = transform.position;
-            stream.Serialize(ref pos);
-        }
-        else
-        {
-            stream.Serialize(ref Velocity);
-            Vector3 pos = Vector3.zero;
-            stream.Serialize(ref pos);
-            Vector3 error = pos - transform.position;
-            if(error.magnitude > 10)
-                transform.position = pos;
-        }
-
-        //stream.Serialize(ref Velocity);
-        //Vector3 pos = transform.position;
-        //stream.Serialize(ref pos);
-        //transform.position = pos;
-    }
+	{
+		name = newName;
+	}
 }
