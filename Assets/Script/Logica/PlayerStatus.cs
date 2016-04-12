@@ -1,8 +1,7 @@
 using UnityEngine;
-using System.Collections;
 
-public class PlayerStatus : NetComponent
-{
+public class PlayerStatus : NetComponent {
+    
     public Vector3 Velocity { get; set; }
 
     void Awake()

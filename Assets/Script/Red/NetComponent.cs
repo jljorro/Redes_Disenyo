@@ -1,9 +1,10 @@
 using UnityEngine;
+using UnityEngine.Networking;
 using System;
 using System.Collections;
 using System.Reflection;
 
-public class NetComponent : MonoBehaviour
+public class NetComponent : NetworkBehaviour
 {
     public bool _monojugador = true;
     public bool _server = true;
