@@ -18,8 +18,8 @@ public class CameraController : MonoBehaviour {
         }
     }
 
-    void AddTarget(string name) {
-        Target = GameObject.Find(name);
+    public void AddTarget(GameObject target) {
+        Target = target;
     }
 	
 	// Update is called once per frame
