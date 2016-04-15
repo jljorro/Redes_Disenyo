@@ -17,9 +17,7 @@ public class PlayerController : MonoBehaviour {
         
     // Velocidad del jugador
     Vector3 velocity;
-    
-    [SerializeField] FinishLine finishLine;
-    
+        
     public Vector3 Velocity {
         get {return velocity;}
         set {velocity = value;}
@@ -28,11 +26,7 @@ public class PlayerController : MonoBehaviour {
     // Registro de los input del jugador
     float _vInput = 0;
     float _hInput = 0;
-    
-    void Awake () {
-        finishLine.CmdAddCar (gameObject.name);
-    }
-    
+        
     void Start () {
         _controller = GetComponent<CharacterController> ();
         
@@ -105,4 +99,5 @@ public class PlayerController : MonoBehaviour {
             transform.rotation = Quaternion.LookRotation (velocity);
         }
     }
+
 }

@@ -1,12 +1,12 @@
 ﻿using UnityEngine;
 using UnityEngine.Networking;
 
-public class Player_Sync : NetworkBehaviour {
+public class Player_SyncPosition : NetworkBehaviour {
     
     [SyncVar]
     private Vector3 syncPosition;
     
-    [SerializeField] Transform transform;
+    [SerializeField] Transform transformPlayer;
     [SerializeField] float lerpRate = 15;
 
 	
@@ -18,7 +18,7 @@ public class Player_Sync : NetworkBehaviour {
     
     void LerpPosition () {
         if (!isLocalPlayer) {
-             transform.position = Vector3.Lerp (transform.position, syncPosition, Time.deltaTime * lerpRate);
+             transformPlayer.position = Vector3.Lerp (transformPlayer.position, syncPosition, Time.deltaTime * lerpRate);
         }        
     }
     
@@ -30,7 +30,7 @@ public class Player_Sync : NetworkBehaviour {
     [ClientCallback]
     void TransmitPosition () {
         if (isLocalPlayer) {
-            CmdProvidePositionToServer (transform.position);
+            CmdProvidePositionToServer (transformPlayer.position);
         }
     }
 }

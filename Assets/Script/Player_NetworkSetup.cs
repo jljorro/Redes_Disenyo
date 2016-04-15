@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.Networking;
 
-public class Playert_NetwrokSetup : NetworkBehaviour {
+public class Player_NetworkSetup : NetworkBehaviour {
 
 	// Use this for initialization
 	void Start () {
@@ -18,7 +18,6 @@ public class Playert_NetwrokSetup : NetworkBehaviour {
 	}
 	
 	// Update is called once per frame
-	void Update () {
-	
-	}
+	void Update () {}
+    
 }

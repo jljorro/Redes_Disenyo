@@ -7,7 +7,7 @@ public class Player_SyncRotation : NetworkBehaviour {
     [SyncVar] 
     private Quaternion syncPlayerRotation;
 
-    [SerializeField] private Transform transform;
+    [SerializeField] private Transform transformPlayer;
     [SerializeField] private float lerpRate = 15;
     
 	// Use this for initialization
@@ -23,7 +23,7 @@ public class Player_SyncRotation : NetworkBehaviour {
     
     void LerpRotation () {
         if (!isLocalPlayer){
-            transform.rotation = Quaternion.Lerp (transform.rotation, syncPlayerRotation, Time.deltaTime * lerpRate);
+            transformPlayer.rotation = Quaternion.Lerp (transformPlayer.rotation, syncPlayerRotation, Time.deltaTime * lerpRate);
         }
     }
     
@@ -35,7 +35,7 @@ public class Player_SyncRotation : NetworkBehaviour {
     [ClientCallback]
     void TransmitRotation () {
         if (isLocalPlayer){
-            CmdProvideRotationToServer (transform.rotation);
+            CmdProvideRotationToServer (transformPlayer.rotation);
         }
     }
 }
