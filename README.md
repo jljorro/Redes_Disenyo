@@ -241,10 +241,17 @@ void Update () {
     }
 }
 ```
-Además, tenemos que decirle a la cámara que tiene que seguir a nuestro jugador local, entonces vamos a la función `Start ()` y condicionamos el target de nestra cámara a nuestro jugador local:
+Además, tenemos que decirle a la cámara que tiene que seguir a nuestro jugador local. En la función `Start ()` condicionamos el target de nuestra cámara y la asignación de nuestro controlador se haga únicamente cuando somos el jugador local:
 
 ```C#
-
+void Start () {
+    if (isLocalPlayer) {
+        _controller = GetComponent<CharacterController> ();
+        
+        CameraController cameraCont= GameObject.Find ("Main Camera").GetComponent<CameraController> ();
+        cameraCont.AddTarget (gameObject);
+    }
+}
 ```
 
 Si ahora ejecutamos el juego desde Unity y desde la construcción del ejecutable podemos ver que ya sólo controlamos a un único jugador. Pero los problemas siguen... Cuando movemos uno de los jugadores, en la otra pantalla no se mueve. Parece ser que no le estamos enviando la posición al otro extremo de la conexión.
