@@ -11,6 +11,8 @@ A continuación, veremos un breve resumen de los pasos que vamos a realizar en e
 * Completar la física del coche que se usará en el juego.
 * Añadir componentes de Red de Unity.
 * Crear la parrilla de salida de los coches.
+* Limitar control sólo a la representación del jugador local.
+* Sincronizar movimientos para que se vean en los otros clientes.
 
 Comenzemos con la práctica.
 
@@ -199,3 +201,65 @@ Muy bien, esto ahora debería de funcionar. Volvemos a ejecutar desde el propio 
 
 ![Método Round Robin de generación de jugadores.](img/spwanMethod.png)
 
+Esto hace que ya tengamos a los jugadores en distintas posiciones. Ahora cuando jugamos en cualquiera de las 2 ventanas vemos que controlamos a ambos coches. Hay que decirle al `PlayerContoller` que solo nos mueva sí somos el jugador local (`isLocalPlayer`). Para ello debemos hacer varios cambios en el `PlayerController.cs
+
+## Paso 4: Modificar el controlador del jugador.
+
+Como hemos visto, cuando movemos el coche en nuestra partida también movemos el del otro jugador. El problema es que no estamos limitando nuestros movimientos a nuestro jugador local. Para ello, vamos a `PlayerController.cs` y hacemos unos pequeños cambios para que solo controlesmos el jugador local.
+
+En primer lugar, tenemos que hacer que este script deje de heredar de `MonoBehaviour` para que herede de `NetworkBehaviour`. El `NetworkBehaviour` es equivalente a `MonoBehaviour` pero al que se le han añadido atributos y funciones de red. Modificamos la clase para que herede de la nueva clase:
+
+```C#
+using UnityEngine.Networking;
+
+public class Player_Controller : NetworkBehaviour {
+    ...
+}
+```
+
+Ahora ya podemos llamar a funciones de red para saber si somos el jugador local. Lo que queremos es que se modifique nuestra posición solo si somos el jugador local. Para ello, nos vamos a la función `Update ()` y lo condicionamos a que sea el jugador local llamando al atributo boolean `isLocalPlayer`:
+
+```C#
+void Update () {        
+        
+    if (isLocalPlayer) {
+        // Capturamos el input del jugador
+        float vInput = Input.GetAxisRaw ("Vertical");
+        if (_vInput != vInput) {
+            _vInput = vInput;
+        }
+
+        float hInput = Input.GetAxisRaw ("Horizontal");
+        if (_hInput != hInput) {
+            _hInput = hInput;
+        }   
+
+        // Movemos el coche
+        Vector3 acel = CalculateAceleration ();
+        CalculateVelocity (acel);
+        MovePlayer ();
+    }
+}
+```
+Además, tenemos que decirle a la cámara que tiene que seguir a nuestro jugador local, entonces vamos a la función `Start ()` y condicionamos el target de nestra cámara a nuestro jugador local:
+
+```C#
+
+```
+
+Si ahora ejecutamos el juego desde Unity y desde la construcción del ejecutable podemos ver que ya sólo controlamos a un único jugador. Pero los problemas siguen... Cuando movemos uno de los jugadores, en la otra pantalla no se mueve. Parece ser que no le estamos enviando la posición al otro extremo de la conexión.
+
+## Paso 5: Sincronizar posición en red.
+
+El problema es que no le estamos pasando la posición que tenemos al servidor. Tenemos que modificar el prefab `Car` paara que mande su posición cuando este se mueva. Pero, ¿cómo lo hacemos?...
+
+Cargamos el prefab en la escena y le añadimos un nuevo componente de red. En este caso añadimos el componente `Network Transform` que hace la función de:
+* Envia la posición del jugador local al servidor.
+* Muestra la posición del resto de jugadores en nuestra pantalla.
+* Realiza la interpolación al dibujar a los otros jugadores.
+
+Ahora nuestro inspector del prefab `Car` quedará así:
+
+![Prefab Car con el componente Network Transport](img/networkTransform.png)
+
+Aplicamos los cambios al prefab y lo eliminamos de la escena. Volvemos a ejecutar el juego y observamos que ya se muestran los cambios que hace el otro jugador.
