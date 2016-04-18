@@ -1,10 +1,9 @@
 using UnityEngine;
-using UnityEngine.Networking;
 
 /// <summary>
 /// Clase que se encarga de mostrar el resultado de la carrera.
 /// </summary>
-public class GUIInfo : NetworkBehaviour {
+public class GUIInfo : MonoBehaviour {
     
     [SerializeField] FinishLine finishLine;
 

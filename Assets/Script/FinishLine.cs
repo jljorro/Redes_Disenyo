@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Networking;
 
 /// <summary>
 /// Clase que controla la meta y los tiempos de vuelta que se
@@ -7,11 +6,11 @@ using UnityEngine.Networking;
 ///
 /// Cada clase FinishLine controla la meta del jugador local.
 /// </summary>
-public class FinishLine : NetworkBehaviour {
+public class FinishLine : MonoBehaviour {
     
     // Variables que hay que sincronizar
-    [SyncVar] string nameLeader;
-    [SyncVar] float leaderTime;
+    string nameLeader;
+    float leaderTime;
     
     // Variables locales a cada juagdor
     int carLap;
@@ -59,7 +58,6 @@ public class FinishLine : NetworkBehaviour {
 
     void Update () {}
     
-    [Server]
     public void SetBestTimes (string nameLeader, float bestTime){
         this.nameLeader = nameLeader;
         leaderTime = bestTime;
@@ -67,30 +65,5 @@ public class FinishLine : NetworkBehaviour {
 
     void OnTriggerEnter(Collider other) {
       Debug.Log ("Entro en la meta");
-      
-      if (other.GetComponent<Player_NetworkSetup>().isLocalPlayer) {
-            car = other.gameObject;
-            
-            // Comprobamos que ha pasado por todos los puntos de control
-            foreach (GameObject cp in _checkpoints) {
-                if (!cp.GetComponent<CheckPoint>().Checked)
-                    return;
-            }
-            
-            // Marcamos el tiempo de la última vuelta
-            lastLapTime = Time.time - lastLapTime;
-            
-            if (bestLocalTime > lastLapTime)
-                bestLocalTime = lastLapTime;
-                
-            if (leaderTime > bestLocalTime) {
-                other.GetComponent<Player_NetworkIdentity> ().CmdSetBestTimes (car.name, bestLocalTime);
-            }
-
-            // Reseteamos todos los checkpoints para ese coche
-            foreach (GameObject cp in _checkpoints) {
-                cp.GetComponent<CheckPoint>().Checked = false;
-            }            
-        }      
     }
 }

@@ -1,7 +1,6 @@
 using UnityEngine;
-using UnityEngine.Networking;
 
-public class CheckPoint : NetworkBehaviour {
+public class CheckPoint : MonoBehaviour {
     
     public bool Checked { get; set; }
 
