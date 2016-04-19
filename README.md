@@ -1,6 +1,8 @@
 # Diseño de Redes en Unity
 
-## Introducción:
+## Día 1: Aplicando los Componentes de Red de Unity
+
+### Introducción:
 
 En esta práctica veremos como usar las herramientas que nos proporciona Unity para hacer un juego en red. El juego que usaremos será un juego de coches en 2-D.
 
@@ -16,7 +18,7 @@ A continuación, veremos un breve resumen de los pasos que vamos a realizar en e
 
 Comenzemos con la práctica.
 
-## Paso 1: Completar el Prefab `Car`.
+### Paso 1: Completar el Prefab `Car`.
 
 En primer lugar vamos a completar la funcionalidad del coche que se utilizará en el juego. El coche tiene asignado el script `PlayerController.cs` para implementar toda la parte que controla el coche. En este momento el script tiene el siguiente código:
 
@@ -156,7 +158,7 @@ void Start () {
 
 En este punto ya tenemos el juego preparado para partidas monojugador. Vamos a añadir los elementos para hacerlo multijugador.
 
-## Paso 2: Añadir componentes de Red de Unity (HLAPI).
+### Paso 2: Añadir componentes de Red de Unity (HLAPI).
 
 Unity tiene diversos componentes que nos simplifican la creación de un juego en red. En esta práctica usaremos la API de alto nivel de Unity (HLAPI) de su arquitectura de red. Todos estos componentes se encuentran dentro de la carpeta `Network` de los componentes.
 
@@ -185,7 +187,7 @@ Si ejecutamos el juego en este momento vemos que tenemos varios problemas:
 
 Vamos a ir resolviendo estos errores.
 
-## Paso 3: Parrilla de Salida
+### Paso 3: Parrilla de Salida
 
 El primer error que debemos corregir es la colocación inicial del coche. El `Network Manager` desconoce que estamos hacien un juego de carreras y como debe colocar las representaciones de los jugadores. Por eso crearemos una parrilla de salida donde le marcaremos al `Network Manager` donde deben de empezar los jugadores.
 
@@ -256,7 +258,7 @@ void Start () {
 
 Si ahora ejecutamos el juego desde Unity y desde la construcción del ejecutable podemos ver que ya sólo controlamos a un único jugador. Pero los problemas siguen... Cuando movemos uno de los jugadores, en la otra pantalla no se mueve. Parece ser que no le estamos enviando la posición al otro extremo de la conexión.
 
-## Paso 5: Sincronizar posición en red.
+### Paso 5: Sincronizar posición en red.
 
 El problema es que no le estamos pasando la posición que tenemos al servidor. Tenemos que modificar el prefab `Car` paara que mande su posición cuando este se mueva. Pero, ¿cómo lo hacemos?...
 
@@ -267,6 +269,274 @@ Cargamos el prefab en la escena y le añadimos un nuevo componente de red. En es
 
 Ahora nuestro inspector del prefab `Car` quedará así:
 
-![Prefab Car con el componente Network Transport](img/networkTransform.png)
+![Prefab Car con el componente Network Transport.](img/networkTransform.png)
 
 Aplicamos los cambios al prefab y lo eliminamos de la escena. Volvemos a ejecutar el juego y observamos que ya se muestran los cambios que hace el otro jugador.
+
+## Día 2: Mejorando la sincronización y especializando funciones entre cliente/servidor.
+
+En la clase anterior usamos los distintos componentes de red que nos proporciona Unity para hacer nuestro juego multijugador en red.
+
+El problema de usar dichos componentes es que la sincronización no es la mejor posible. Por ejemplo, podemos ver como el movimiento del jugador rival va *"a saltos"*. A continuación, vamos a mejorar la sincronización de los movimientos de los jugadores utilizando las herramientas que nos proporciona la librería `UnityEngine.Networking`. Además vamos a identificar a los jugadores y guardar el mejor tiempo de entre todos los jugadores.
+
+### Paso 1: Sincronizar la posición de los jugadores por código.
+
+El primer paso va a ser mejorar la sincronización e interpolación de la posición de los jugadores. El objetivo es que los jugadores vean a los demás de una forma más natural.
+
+Cargamos el prefab `Car` en la escena y eliminamos el componente `Network Transform`. Creamos un nuevo script `Player_SyncPosition` que sustituira al componente eliminado. Asignamos dicho componete al prefab y lo abrimos para editar.
+
+Como vimos en el día anterior vamos a modificar la herencia de la clase `Player_NetPosition` haciendo que herede de `NetworkBehaviour`.
+
+```C#
+public class Player_SyncPosition : NetworkBehaviour {
+
+}
+```
+
+Eliminamos los métodos `Start ()` y `Update ()` porque no los vamos a utilizar en esta clase.
+
+Esta clase se encargará de sincronizar la posición del jugador local para que los demás jugadores tengan constacia de su posición y, además, interpolar la posición de los jugadores para que al visualizarlos no den *"saltos"*.
+
+Para sincronizar usaremos una etiqueta de la librería `UnityEngine.Networking`: `[SyncVar]`. Está etiqueta indica al servidor que cuando haya una modificación en dicho atributo, lo comunique a todos los clientes. Esto nos permite que no tengamos que preocuparnos por la comunicación en red de dicha información.
+
+Para esta clase declararemos 3 atributos:
+* La posición del jugador de tipo `Vector3` y sincronizada.
+* El transform del jugador para obtener dicha posición.
+* La frecuencia de interpolación (**lerp**).
+
+La nueva clase nos quedará así:
+
+```C#
+public class Player_SyncPosition : NetworkBehaviour {
+
+    [SyncVar] Vector3 position;
+    [SerializedField] Transform transformPlayer;
+    [SerializedField] float lerpRate = 15;
+
+}
+```
+
+Ahora tenemos que ver como hacemos la sincronización con nuestra posición. Usaremos una función `FixedUpdate ()` para no saturar las comunicación de red y para sincronizar a una misma frecuencia. Esa función tendrá dos objetivos, enviar la posición de nuestro jugador local e interpolar la posición del resto de jugadores.
+
+```C#
+void FixedUpdate () {
+    TransmitPosition ();
+    LerpPosition ();
+}
+```
+
+Definamos cada una de las funciones auxiliares. En primer lugar vamos a definir la función que transmite la posición: `TransmitPosition ()`. Esta función solo tiene sentido que sea llamada desde el cliente, ya que el servidor no tiene ningún jugador local para transmitir su posición. Por ese motivo añadimos la etiqueta `[Client]`. Esta función hará que cuando somo el jugador local le digamos al servidor cual es la posición de nuestro jugador. La forma nos permite Unity para comunicarnos con el servidor es usando los comandos. Los comandos son funciones de las clases que vienen precedidas por la etiqueta `[Command]`. En dicha función modificaremos el atributo `position` que luego actualizaremos al resto de clientes. Las funciones que debemos definir en la clase son:
+
+```C#
+[Command]
+void CmdProvidePositionToServer (Vector3 position) {
+    syncPosition = position;
+}
+    
+[Client]
+void TransmitPosition () {
+    if (isLocalPlayer) {
+        CmdProvidePositionToServer (transformPlayer.position);
+    }
+}
+```
+
+La otra función que habiamos definido es interpolar las posiciones del resto de jugadores. En esta función modificaremos la posición de los demás jugadores. La función modificará la posición por interpolación siempre que no sea la posición del jugador local (porque no es necesario interpolar nuestra propia posición). La función quedaria de la siguiente manera:
+
+```C#
+void LerpPosition () {
+    if (!isLocalPlayer) {
+         transformPlayer.position = Vector3.Lerp (transformPlayer.position, syncPosition, Time.deltaTime * lerpRate);
+    }        
+}
+```
+
+Una vez que hemos terminado de crear dicha clase, aplicamos los cambios al prefab y lo eliminamos de la escena. Ahora toca probar los que hemos hecho. Cuando lo probamos, vemos que la posición se sincroniza perfectamente, pero... ¡los coches no giran!. Para ello debemos crear otra clase que sincronice la rotación de dichos jugadores. Esto lo dejamos como ejercicio.
+
+### Paso 2: Identificar a cada jugador en red.
+
+Uno de las tareas que debemos implementar en los juegos de red es la identificación de los distintos jugadores de red. Para ello crearemos nombres únicos para cada uno de los jugadores. Esto lo haremos usando el identificador de red que nos proporciona Unity para cada cliente.
+
+Como hemos hecho anteriormente vamos a crear un script que herede de `NetworkBehaviour` que controle la gestión de los identificadores de red y que los sincronice con el servidor. Este script se lo asignamos al prefab `Car`.
+
+En esta clase usaremos 3 atributos. En primer lugar, pondremos el `playerUniqueId` que será un `string` sincronizado con el servidor para que se actualice al resto de clientes. Además, tendremos un atributo de tipo `NetworkInstanceId` para obtener el identificador de red y por último, el transform del propio prefab para poder cambiar su nombre. Esto nos valdrá para saber quién ha hecho el mejor tiempo en el juego.
+
+```C#
+public class Player_NetworkIdentity : NetworkBehaviour {
+        
+    [SyncVar] private string playerUniqueId;
+    private NetworkInstanceId playerNetId;
+    private Transform transformPlayer;
+
+}
+```
+
+Esta clase tendrá como objetivos decirle al servidor cual es nuestro identificador y modificar el nombre de los GameObjects de los demás jugadores. Vamos con la primera tarea.
+
+Al principio queremos que cuando comencemos como jugador local enviemos nuestro identificador al servidor. Para saber cuando somos el jugador local debemos sobreescribir la función `OnStartLocalPlayer ()` de `NetworkBehaviour`. Allí llamaremos a 2 funciones: obtener el identificador de red y asignarnos un identificador único.
+
+```C#
+public override void OnStartLocalPlayer () {
+    GetNetIdentity ();
+    SetIdentity ();
+}
+```
+
+Para obtener el identificador de red, debemos obtenerlo del componente `NetworkIdentity` (que le habiamos asignado anteriormente al prefab `Car`). Una vez que hemos obtenido el identificador de red, mandaremos al servidor un identificador único que construiremos. Para indicar al servidor nuestro `playerUniqueId`, tendremos que usar una función etiquetada como comando. la función `GetNetIdentity ()` sólo tiene que ser llamada desde el cliente por lo que llevará la etiqueta `[Client]`.
+
+```C#
+[Client]
+void GetNetIdentity () {
+    playerNetId = GetComponent<NetworkIdentity> ().netId;
+    
+    CmdTellServerMyIdentity (MakeUniqueIdentity());
+}
+
+string MakeUniqueIdentity () {
+    string uniqueId = "Player " + playerNetId.ToString ();
+    return uniqueId;
+}
+
+[Command]
+void CmdTellServerMyIdentity (string identity) {
+    playerUniqueId = identity;
+}
+```
+
+Una vez que tenemos creado nuestro identificador único y que se lo hemos comunicado al servidor, tendremos que modificar el nombre de nuestro GameObject para ponerle el identificador que hemos creado. Para ello implementamos la función `SetIdentity ()`.
+
+```C#
+void SetIdentity () {
+    if (!isLocalPlayer) {
+        transformPlayer.name = playerUniqueId;
+    } else {
+        transformPlayer.name = MakeUniqueIdentity();
+    }
+}
+```
+
+Como vemos esta función la usaremos para asignar el nombre de todos los objetos que representan a los distintos jugadores, por eso, cuando no somos el jugador local tenemos que obtener su identificador del atributo sincronizado con el servidor.
+
+Por último, falta asignar los nombres de todos los jugadores. Para ello usaremos la función `Update ()`. En esta función modificaremos el nombre del GameObject que representa a un jugador por su identificador único sí el nombre que tiene es vacio o el que genera Unity por defecto.
+
+```C#
+void Update () {
+    if (transformPlayer.name == "" || transformPlayer.name == "Car(Clone)"){
+        SetIdentity ();
+    }
+}
+```
+
+Con estos cambios ya tendríamos los identificadores de cada jugador en la partida. Esto se puede comprobar al ejecutar la aplicación y ver que nombres tienen asignados los distintos objetos que representan a los jugadores.
+
+### Paso 3: Gestionar el marcador de tiempos.
+
+Por último, tenemos que gestionar que todos los jugadores puedan ver sus tiempos locales y el mejor tiempo de entre todos los clientes. El script `GUIInfo.cs`, sólo muestra los tiempos que hay guardados en el script `FinishLine.cs`, por lo que debemos modificar es dicha linea de meta. Para empezar al objeto de la escena **FinishLine** le asignamos un componenet `Network Identity` y al script `FinishLine.cs` le cambiamos la herencia por `NetworkBehaviour`.
+
+Los atributos que tendremos en esta clase son los tiempos locales y generales de toda la partida. Los datos locales no estarán sincronizados, ya que sólo hay que mostrarlos al jugador local, en cambio, los mejores tiempos de todos los coches si hay que sincronizarlos entre todos los clientes. Quedará una definición como esta:
+
+```C#
+public class FinishLine : NetworkBehaviour {
+    
+    // Variables que hay que sincronizar
+    [SyncVar] string nameLeader;
+    [SyncVar] float leaderTime;
+    
+    // Variables locales a cada juagdor
+    int carLap;
+    float lastLapTime;
+    //float carTime;
+    float bestLocalTime;
+    
+    GUIInfo _guiInfo;
+    GameObject[] _checkpoints;
+    GameObject car;
+}
+```
+
+Lo único que se ha modificado es sincronizar los datos del nombre del jugador que va lider y el tiempo que ha hecho. El siguiente paso es actualizar los tiempos que hacemos en cada vuelta y ver si hemos superado al lider. Cuando superemos al lider tendremos que comunicarlos al servidor. De momento, para esto último solo definiremos una función que se ejecuta únicamente en el servidor (le pondermos la etiqueta `[Server]`) y luego veremos cuando llamamos a dicha función.
+
+El código nos quedará así:
+
+```C#
+[Server]
+public void SetBestTimes (string nameLeader, float bestTime){
+    this.nameLeader = nameLeader;
+    leaderTime = bestTime;
+}
+
+void OnTriggerEnter(Collider other) {
+  Debug.Log ("Entro en la meta");
+  
+  if (other.GetComponent<Player_NetworkSetup>().isLocalPlayer) {
+        car = other.gameObject;
+        
+        // Comprobamos que ha pasado por todos los puntos de control
+        foreach (GameObject cp in _checkpoints) {
+            if (!cp.GetComponent<CheckPoint>().Checked)
+                return;
+        }
+        
+        // Marcamos el tiempo de la última vuelta
+        lastLapTime = Time.time - lastLapTime;
+        
+        if (bestLocalTime > lastLapTime)
+            bestLocalTime = lastLapTime;
+            
+        if (leaderTime > bestLocalTime) {
+            // Comunicar que se cambie el lider
+        }
+
+        // Reseteamos todos los checkpoints para ese coche
+        foreach (GameObject cp in _checkpoints) {
+            cp.GetComponent<CheckPoint>().Checked = false;
+        }            
+    }      
+}
+```
+
+Como vemos falta una parte del código. La parte en la que comunicamos al servidor los cambios de lider. No podemos llamar a la función `SetBestTimes ()`, porque sólo es ejecutable desde el servidor. Otra opción sería crear una función comando para poder cambiar dichos datos, pero estas funciones sólo pueden ser declaradas en scripts usados como jugadores, en nuestro caso los que esté en el prefab `Car`.
+
+Por lo que tendremos que crearnos una función en algún script del prefab `Car` que llame a la función `SetBestTimes ()` de la meta. Así que añadiremos dicha función en el script `Player_Networkidentity.cs`:
+
+```C#
+[Command]
+public void CmdSetBestTimes (string nameLeader, float leaderTime) {
+    GameObject.Find ("Circuit/FinishLine").GetComponent<FinishLine> ().SetBestTimes (nameLeader, leaderTime);
+}
+```
+
+Para terminar, solo tendremos que completar la función que hemos dejado a medias anteriormente (`OnTriggerEnter ()`). Tendremos que llamar a la función correspondiente del prefab `Car` para enviar el comando.
+
+```C#
+void OnTriggerEnter(Collider other) {
+  Debug.Log ("Entro en la meta");
+  
+  if (other.GetComponent<Player_NetworkSetup>().isLocalPlayer) {
+        car = other.gameObject;
+        
+        // Comprobamos que ha pasado por todos los puntos de control
+        foreach (GameObject cp in _checkpoints) {
+            if (!cp.GetComponent<CheckPoint>().Checked)
+                return;
+        }
+        
+        // Marcamos el tiempo de la última vuelta
+        lastLapTime = Time.time - lastLapTime;
+        
+        if (bestLocalTime > lastLapTime)
+            bestLocalTime = lastLapTime;
+            
+        if (leaderTime > bestLocalTime) {
+            other.GetComponent<Player_NetworkIdentity> ().CmdSetBestTimes (car.name, bestLocalTime);
+        }
+
+        // Reseteamos todos los checkpoints para ese coche
+        foreach (GameObject cp in _checkpoints) {
+            cp.GetComponent<CheckPoint>().Checked = false;
+        }            
+    }      
+}
+```
+
+Con este último cambio ya tendríamos el juego sicronizado y preparado para jugar en red.
