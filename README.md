@@ -540,3 +540,42 @@ void OnTriggerEnter(Collider other) {
 ```
 
 Con este último cambio ya tendríamos el juego sicronizado y preparado para jugar en red.
+
+## Anexo: Mejorar la eficiencia en la sincronización de la posición
+
+Uno de los aspectos más importantes a la hora de diseñar una aplicación de red es ver la cantidad de información que estamos enviando. En este anexo vamos a ver cómo mejorar este aspecto en la sincronización de la posición.
+
+Los cambios que haremos en esta parte se harán en la clase `Player_SyncPosition.cs`. En primer lugar vamos a detectar el problema que queremos resolver. Vamos a analizar de una forma "brusca" cuantos mensajes (o comandos) enviamos al servidor. Añadiremos un mensaje en la función `CmdProvidePositionToServer ()`, que se mostrará cada vez que llamemos a dicha función.
+
+```C#
+[Command]
+void CmdProvidePositionToServer (Vector3 position) {
+    Debug.Log ("Envio un mensaje al servidor!");
+    syncPosition = position;
+}
+```
+
+Ahora vamos a ejecutar la aplicación, haciendo que la ejecución en Unity sea el servidor (para poder ver estos mensajes). ¿Qué es lo que pasa? Vemos que la cantidad de mensajes que estamos enviando se dispara. Nuestro objetivo ahora es simplificar la cantidad de mensajes.
+
+Ahora el cliente envia un mensaje al servidor cada *FixedTime*. Nosotros ahora vamos a especificar una distancia mínima (de la posición anterior a la posición actual), para enviar el mensaje. Primero tenemos que añadir 2 nuevos atributos a la clase:
+
+```C#
+
+private Vector3 lastPosition;
+private float minDistance = 0.5f;
+
+```
+
+Ahora, limitaremos el envio de mensajes cuando la distancia del movimiento sea mayor al límite que hemos puesto. Cada vez que enviemos el mensaje actualizaremos la última posición enviada en el atributo `lastPosition`:
+
+```C#
+[Client]
+void TransmitPosition () {
+    if (isLocalPlayer && Vector3.Distance (transformPlayer.position, lastPosition) > minDistance) {
+        CmdProvidePositionToServer (transformPlayer.position);
+        lastPosition = transformPlayer.position;
+    }
+}
+```
+
+Si ahora ejecutamos dicho código vemos que la cantidad de mensajes es mucho menor. Cómo ejercicio aplicar el mismo cambio en la clase `Player_SyncRotation`, haciendo que no se envien cambios si el giro es menor de 5º.
