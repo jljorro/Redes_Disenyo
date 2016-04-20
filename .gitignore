@@ -42,7 +42,7 @@ sysinfo.txt
 *.userprefs
 
 # Build results
-build.app
+*.app
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
