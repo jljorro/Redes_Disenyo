@@ -13,6 +13,8 @@ GameObject:
   - 143: {fileID: 14378362}
   - 114: {fileID: 11432954}
   - 54: {fileID: 5497180}
+  - 114: {fileID: 11481936}
+  - 114: {fileID: 11468568}
   m_Layer: 0
   m_Name: Car
   m_TagString: Player
@@ -95,6 +97,58 @@ MonoBehaviour:
   _drag: 1
   _brakeAcel: 12
   _maxVelocity: 10
+--- !u!114 &11468568
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 108234}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1768714887, guid: 870353891bb340e2b2a9c8707e7419ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_TransformSyncMode: 3
+  m_SendInterval: 0.1
+  m_SyncRotationAxis: 7
+  m_RotationSyncCompression: 0
+  m_SyncSpin: 0
+  m_MovementTheshold: 0.001
+  m_SnapThreshold: 5
+  m_InterpolateRotation: 1
+  m_InterpolateMovement: 1
+--- !u!114 &11481936
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 108234}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 372142912, guid: 870353891bb340e2b2a9c8707e7419ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SceneId:
+    m_Value: 0
+  m_AssetId:
+    i0: 78
+    i1: 17
+    i2: 5
+    i3: 121
+    i4: 225
+    i5: 204
+    i6: 212
+    i7: 106
+    i8: 184
+    i9: 34
+    i10: 102
+    i11: 26
+    i12: 72
+    i13: 34
+    i14: 95
+    i15: 226
+  m_ServerOnly: 0
+  m_LocalPlayerAuthority: 1
 --- !u!143 &14378362
 CharacterController:
   m_ObjectHideFlags: 1
